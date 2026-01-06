@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
 import { DEPARTMENTS } from '../types';
-import type { StudentInfo, Course, AdmissionYear, Department } from '../types';
+import type { StudentInfo, Course, Department } from '../types';
 
 const Container = styled.div`
   min-height: 100vh;
@@ -50,10 +50,7 @@ const CardTitle = styled.h2`
 
 const FormGroup = styled.div`
   margin-bottom: 20px;
-
-  &:last-child {
-    margin-bottom: 0;
-  }
+  &:last-child { margin-bottom: 0; }
 `;
 
 const Label = styled.label`
@@ -77,7 +74,6 @@ const Select = styled.select`
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%234e5968' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 16px center;
-
   &:focus {
     outline: none;
     border-color: #3182f6;
@@ -89,10 +85,7 @@ const Row = styled.div`
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-
-  @media (max-width: 500px) {
-    grid-template-columns: 1fr;
-  }
+  @media (max-width: 500px) { grid-template-columns: 1fr; }
 `;
 
 const CheckboxGroup = styled.div`
@@ -114,15 +107,8 @@ const CheckboxLabel = styled.label<{ $checked?: boolean }>`
   font-size: 14px;
   color: ${props => props.$checked ? '#3182f6' : '#4e5968'};
   font-weight: ${props => props.$checked ? '600' : '400'};
-
-  &:hover {
-    border-color: #3182f6;
-  }
-
-  input {
-    display: none;
-  }
-
+  &:hover { border-color: #3182f6; }
+  input { display: none; }
   &::before {
     content: '';
     width: 20px;
@@ -154,7 +140,6 @@ const Tag = styled.span`
   border-radius: 8px;
   font-size: 14px;
   font-weight: 500;
-
   button {
     background: none;
     border: none;
@@ -164,10 +149,7 @@ const Tag = styled.span`
     font-size: 16px;
     line-height: 1;
     opacity: 0.7;
-    
-    &:hover {
-      opacity: 1;
-    }
+    &:hover { opacity: 1; }
   }
 `;
 
@@ -192,15 +174,8 @@ const AddButton = styled.button`
   font-weight: 600;
   transition: all 0.2s;
   white-space: nowrap;
-
-  &:hover {
-    background: #e5e8eb;
-  }
-
-  &:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
+  &:hover { background: #e5e8eb; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
 `;
 
 const FileInput = styled.div<{ $active?: boolean }>`
@@ -211,7 +186,6 @@ const FileInput = styled.div<{ $active?: boolean }>`
   cursor: pointer;
   transition: all 0.2s;
   background: ${props => props.$active ? '#f2f7ff' : '#fafbfc'};
-
   &:hover {
     border-color: #3182f6;
     background: #f2f7ff;
@@ -255,15 +229,8 @@ const Button = styled.button`
   font-weight: 600;
   cursor: pointer;
   transition: background 0.2s;
-
-  &:hover {
-    background: #1b64da;
-  }
-
-  &:disabled {
-    background: #d1d6db;
-    cursor: not-allowed;
-  }
+  &:hover { background: #1b64da; }
+  &:disabled { background: #d1d6db; cursor: not-allowed; }
 `;
 
 const WarningBox = styled.div`
@@ -276,10 +243,7 @@ const WarningBox = styled.div`
   align-items: flex-start;
   gap: 10px;
   margin-top: 16px;
-
-  &::before {
-    content: '⚠️';
-  }
+  &::before { content: '⚠️'; }
 `;
 
 const InfoText = styled.p`
@@ -290,8 +254,16 @@ const InfoText = styled.p`
 
 const InputPage: React.FC = () => {
   const navigate = useNavigate();
+  const currentYear = new Date().getFullYear();
+  
+  // 입학년도 옵션 생성 (2010 ~ 현재년도)
+  const admissionYears = Array.from(
+    { length: currentYear - 2009 },
+    (_, i) => currentYear - i
+  );
+
   const [studentInfo, setStudentInfo] = useState<StudentInfo>({
-    admissionYear: '2023이후',
+    admissionYear: 2023,
     mainDepartment: '전산학부',
     advancedMajor: false,
     freeFusionMajor: false,
@@ -306,9 +278,7 @@ const InputPage: React.FC = () => {
   const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
     setFileName(file.name);
-
     const reader = new FileReader();
     reader.onload = (e) => {
       const data = e.target?.result;
@@ -317,7 +287,6 @@ const InputPage: React.FC = () => {
       const worksheet = workbook.Sheets[sheetName];
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
-
       const parsedCourses: Course[] = jsonData.map((row) => ({
         semester: row['학년도-학기'] || '',
         department: row['학과'] || '',
@@ -333,11 +302,9 @@ const InputPage: React.FC = () => {
         gradeOriginal: row['성적(P/NR표기전)'] || '',
         grade: row['성적'] || '',
       }));
-
       const completedCourses = parsedCourses.filter(
         (course) => !['F', 'NR', 'W'].includes(course.grade)
       );
-
       setCourses(completedCourses);
     };
     reader.readAsBinaryString(file);
@@ -348,27 +315,17 @@ const InputPage: React.FC = () => {
       alert('성적 파일을 업로드해주세요.');
       return;
     }
-
     const hasAnyMajorType = 
       studentInfo.advancedMajor || 
       studentInfo.freeFusionMajor || 
       studentInfo.doubleMajors.length > 0 || 
       studentInfo.minors.length > 0;
-
     if (!hasAnyMajorType) {
       alert('심화전공, 복수전공, 부전공, 자유융합전공 중 하나 이상을 선택해주세요.');
       return;
     }
-
-    navigate('/result', {
-      state: {
-        studentInfo,
-        courses,
-      },
-    });
+    navigate('/result', { state: { studentInfo, courses } });
   };
-
-  const admissionYears: AdmissionYear[] = ['2015이전', '2016-2019', '2020-2022', '2023이후'];
 
   const availableDepartments = DEPARTMENTS.filter(
     (d) => d !== studentInfo.mainDepartment && 
@@ -424,19 +381,18 @@ const InputPage: React.FC = () => {
           <CardTitle>기본 정보</CardTitle>
           <Row>
             <FormGroup>
-              <Label>학번</Label>
+              <Label>입학년도</Label>
               <Select
                 value={studentInfo.admissionYear}
                 onChange={(e) =>
-                  setStudentInfo({ ...studentInfo, admissionYear: e.target.value as AdmissionYear })
+                  setStudentInfo({ ...studentInfo, admissionYear: parseInt(e.target.value) })
                 }
               >
                 {admissionYears.map((year) => (
-                  <option key={year} value={year}>{year}</option>
+                  <option key={year} value={year}>{year}학번</option>
                 ))}
               </Select>
             </FormGroup>
-
             <FormGroup>
               <Label>주전공</Label>
               <Select
@@ -469,20 +425,15 @@ const InputPage: React.FC = () => {
               <input
                 type="checkbox"
                 checked={studentInfo.advancedMajor}
-                onChange={(e) =>
-                  setStudentInfo({ ...studentInfo, advancedMajor: e.target.checked })
-                }
+                onChange={(e) => setStudentInfo({ ...studentInfo, advancedMajor: e.target.checked })}
               />
               심화전공
             </CheckboxLabel>
-            
             <CheckboxLabel $checked={studentInfo.freeFusionMajor}>
               <input
                 type="checkbox"
                 checked={studentInfo.freeFusionMajor}
-                onChange={(e) =>
-                  setStudentInfo({ ...studentInfo, freeFusionMajor: e.target.checked })
-                }
+                onChange={(e) => setStudentInfo({ ...studentInfo, freeFusionMajor: e.target.checked })}
               />
               자유융합전공
             </CheckboxLabel>
@@ -492,7 +443,6 @@ const InputPage: React.FC = () => {
             <>
               <FormGroup style={{ marginTop: 24 }}>
                 <Label>복수전공</Label>
-                
                 {studentInfo.doubleMajors.length > 0 && (
                   <TagContainer>
                     {studentInfo.doubleMajors.map((dept) => (
@@ -503,7 +453,6 @@ const InputPage: React.FC = () => {
                     ))}
                   </TagContainer>
                 )}
-                
                 <SelectRow>
                   <SmallSelect
                     value={selectedDoubleMajor}
@@ -517,15 +466,12 @@ const InputPage: React.FC = () => {
                       ))
                     }
                   </SmallSelect>
-                  <AddButton onClick={addDoubleMajor} disabled={!selectedDoubleMajor}>
-                    추가
-                  </AddButton>
+                  <AddButton onClick={addDoubleMajor} disabled={!selectedDoubleMajor}>추가</AddButton>
                 </SelectRow>
               </FormGroup>
 
               <FormGroup>
                 <Label>부전공</Label>
-                
                 {studentInfo.minors.length > 0 && (
                   <TagContainer>
                     {studentInfo.minors.map((dept) => (
@@ -536,7 +482,6 @@ const InputPage: React.FC = () => {
                     ))}
                   </TagContainer>
                 )}
-                
                 <SelectRow>
                   <SmallSelect
                     value={selectedMinor}
@@ -550,18 +495,14 @@ const InputPage: React.FC = () => {
                       ))
                     }
                   </SmallSelect>
-                  <AddButton onClick={addMinor} disabled={!selectedMinor}>
-                    추가
-                  </AddButton>
+                  <AddButton onClick={addMinor} disabled={!selectedMinor}>추가</AddButton>
                 </SelectRow>
               </FormGroup>
             </>
           )}
 
           {isSemiConductor && (
-            <WarningBox>
-              반도체시스템공학과는 복수전공/부전공이 불가합니다
-            </WarningBox>
+            <WarningBox>반도체시스템공학과는 복수전공/부전공이 불가합니다</WarningBox>
           )}
         </Card>
 

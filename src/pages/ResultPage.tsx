@@ -7,6 +7,7 @@ import {
   getCommonRequirements,
   departmentRequirements,
   getRequirementKey,
+  majorRequiredCourseInfo,
 } from '../data/requirements';
 
 const Container = styled.div`
@@ -81,10 +82,7 @@ const SummaryGrid = styled.div`
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 12px;
-
-  @media (max-width: 500px) {
-    grid-template-columns: repeat(2, 1fr);
-  }
+  @media (max-width: 500px) { grid-template-columns: repeat(2, 1fr); }
 `;
 
 const SummaryItem = styled.div`
@@ -167,13 +165,6 @@ const RequirementStatus = styled.div<{ $passed: boolean }>`
   font-size: 13px;
   font-weight: 600;
   color: ${props => props.$passed ? '#2e7d32' : '#c62828'};
-  display: flex;
-  align-items: center;
-  gap: 4px;
-`;
-
-const ProgressContainer = styled.div`
-  margin-bottom: 8px;
 `;
 
 const ProgressBar = styled.div`
@@ -189,7 +180,6 @@ const ProgressFill = styled.div<{ $percentage: number; $passed: boolean }>`
   height: 100%;
   background: ${props => props.$passed ? '#4caf50' : props.$percentage >= 80 ? '#ff9800' : '#ef5350'};
   border-radius: 3px;
-  transition: width 0.5s ease;
 `;
 
 const ProgressInfo = styled.div`
@@ -218,6 +208,27 @@ const DetailText = styled.div`
   border-top: 1px solid #e5e8eb;
 `;
 
+const MissingCourseBox = styled.div`
+  background: #fff5f5;
+  border: 1px solid #fed7d7;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 12px;
+`;
+
+const MissingCourseTitle = styled.div`
+  font-size: 13px;
+  font-weight: 600;
+  color: #c53030;
+  margin-bottom: 8px;
+`;
+
+const MissingCourseList = styled.div`
+  font-size: 13px;
+  color: #742a2a;
+  line-height: 1.6;
+`;
+
 const NoticeBox = styled.div`
   background: #fff8e6;
   border-radius: 12px;
@@ -227,82 +238,57 @@ const NoticeBox = styled.div`
   line-height: 1.6;
 `;
 
-const Button = styled.button`
+const SecondaryButton = styled.button`
   width: 100%;
   padding: 16px;
-  background: #3182f6;
-  color: white;
+  background: #f4f5f7;
+  color: #4e5968;
   border: none;
   border-radius: 12px;
   font-size: 16px;
   font-weight: 600;
   cursor: pointer;
-  transition: background 0.2s;
   margin-top: 8px;
-
-  &:hover {
-    background: #1b64da;
-  }
+  &:hover { background: #e5e8eb; }
 `;
 
-const SecondaryButton = styled(Button)`
-  background: #f4f5f7;
-  color: #4e5968;
-
-  &:hover {
-    background: #e5e8eb;
-  }
-`;
-
-// 카테고리 매핑
 const getCategoryFromRaw = (rawCategory: string): string => {
-  if (rawCategory.startsWith('인선')) {
-    return '인문사회선택';
-  }
-  
-  const categoryMapping: Record<string, string> = {
-    '기필': '기초필수',
-    '기선': '기초선택',
-    '교필': '교양필수',
-    '전필': '전공필수',
-    '전선': '전공선택',
-    '연구': '연구',
-    '자선': '자유선택',
+  if (rawCategory.startsWith('인선')) return '인문사회선택';
+  const mapping: Record<string, string> = {
+    '기필': '기초필수', '기선': '기초선택', '교필': '교양필수',
+    '전필': '전공필수', '전선': '전공선택', '연구': '연구', '자선': '자유선택',
   };
-  
-  return categoryMapping[rawCategory] || rawCategory;
+  return mapping[rawCategory] || rawCategory;
 };
 
-const getDepartmentFromCourse = (course: Course): string => {
-  return course.department;
-};
+const normalizeCode = (code: string): string => code.replace(/[.\s-]/g, '').toUpperCase();
 
 const ResultPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { studentInfo, courses } = location.state as {
-    studentInfo: StudentInfo;
-    courses: Course[];
-  };
+  const { studentInfo, courses } = location.state as { studentInfo: StudentInfo; courses: Course[] };
 
   const analysisResult = useMemo(() => {
     const hasDoubleMajor = studentInfo.doubleMajors.length > 0;
     
     const creditsByCategory: Record<string, number> = {};
-    let totalAU = 0;
-    let totalCredits = 0;
-    let totalGradePoints = 0;
-    let gradedCredits = 0;
+    let totalAU = 0, totalCredits = 0, totalGradePoints = 0, gradedCredits = 0;
 
     const mainMajorCredits = { 전필: 0, 전선: 0 };
+    const mainMajorCourses: string[] = [];
+    
     const doubleMajorCredits: Record<string, { 전필: number; 전선: number }> = {};
-    const minorCredits: Record<string, { total: number }> = {};
+    const doubleMajorCourses: Record<string, string[]> = {};
+    const minorCredits: Record<string, { 전필: number; 전선: number }> = {};
+    const minorCourses: Record<string, string[]> = {};
 
     studentInfo.doubleMajors.forEach(dept => {
       doubleMajorCredits[dept] = { 전필: 0, 전선: 0 };
+      doubleMajorCourses[dept] = [];
     });
     studentInfo.minors.forEach(dept => {
-      minorCredits[dept] = { total: 0 };
+      minorCredits[dept] = { 전필: 0, 전선: 0 };
+      minorCourses[dept] = [];
     });
 
     courses.forEach((course) => {
@@ -311,36 +297,27 @@ const ResultPage: React.FC = () => {
       totalAU += course.au;
       totalCredits += course.credits;
 
-      const courseDept = getDepartmentFromCourse(course);
-      
       if (course.category === '전필' || course.category === '전선') {
-        if (studentInfo.doubleMajors.includes(courseDept as Department)) {
-          if (course.category === '전필') {
-            doubleMajorCredits[courseDept].전필 += course.credits;
-          } else {
-            doubleMajorCredits[courseDept].전선 += course.credits;
-          }
-        }
-        else if (studentInfo.minors.includes(courseDept as Department)) {
-          minorCredits[courseDept].total += course.credits;
-        }
-        else if (courseDept === studentInfo.mainDepartment) {
-          if (course.category === '전필') {
-            mainMajorCredits.전필 += course.credits;
-          } else {
-            mainMajorCredits.전선 += course.credits;
-          }
+        const dept = course.department;
+        if (studentInfo.doubleMajors.includes(dept as Department)) {
+          if (course.category === '전필') doubleMajorCredits[dept].전필 += course.credits;
+          else doubleMajorCredits[dept].전선 += course.credits;
+          doubleMajorCourses[dept].push(course.courseCode);
+        } else if (studentInfo.minors.includes(dept as Department)) {
+          if (course.category === '전필') minorCredits[dept].전필 += course.credits;
+          else minorCredits[dept].전선 += course.credits;
+          minorCourses[dept].push(course.courseCode);
+        } else if (dept === studentInfo.mainDepartment) {
+          if (course.category === '전필') mainMajorCredits.전필 += course.credits;
+          else mainMajorCredits.전선 += course.credits;
+          mainMajorCourses.push(course.courseCode);
         }
       }
 
       const gradePoints: Record<string, number> = {
-        'A+': 4.3, 'A0': 4.0, 'A-': 3.7,
-        'B+': 3.3, 'B0': 3.0, 'B-': 2.7,
-        'C+': 2.3, 'C0': 2.0, 'C-': 1.7,
-        'D+': 1.3, 'D0': 1.0, 'D-': 0.7,
-        'F': 0,
+        'A+': 4.3, 'A0': 4.0, 'A-': 3.7, 'B+': 3.3, 'B0': 3.0, 'B-': 2.7,
+        'C+': 2.3, 'C0': 2.0, 'C-': 1.7, 'D+': 1.3, 'D0': 1.0, 'D-': 0.7, 'F': 0,
       };
-
       if (gradePoints[course.grade] !== undefined) {
         totalGradePoints += gradePoints[course.grade] * course.credits;
         gradedCredits += course.credits;
@@ -348,188 +325,210 @@ const ResultPage: React.FC = () => {
     });
 
     const gpa = gradedCredits > 0 ? totalGradePoints / gradedCredits : 0;
-
     const totalRequired = getTotalCredits(studentInfo.admissionYear);
     const commonReqs = getCommonRequirements(studentInfo.admissionYear, hasDoubleMajor);
     const reqKey = getRequirementKey(studentInfo.mainDepartment, studentInfo.admissionYear);
     const deptReqs = departmentRequirements[studentInfo.mainDepartment]?.[reqKey] || {
-      majorRequired: 18,
-      majorElective: 24,
-      research: 3,
+      majorRequired: 18, majorElective: 24, research: 3,
     };
 
     const basicElectiveRequired = hasDoubleMajor 
-      ? (deptReqs.basicElectiveDoubleMajor || 6) 
-      : (deptReqs.basicElectiveOverride || commonReqs.basicElective);
+      ? (deptReqs.basicElectiveDoubleMajor ?? 6) 
+      : (deptReqs.basicElectiveOverride ?? commonReqs.basicElective);
 
+    const researchRequired = (hasDoubleMajor && deptReqs.researchExemptForDoubleMajor !== false) ? 0 : deptReqs.research;
+
+    const findMissingCourses = (dept: string, takenCourses: string[]): string[] => {
+      const requiredCourses = majorRequiredCourseInfo[dept] || {};
+      const normalizedTaken = takenCourses.map(normalizeCode);
+      const missing: string[] = [];
+      
+      for (const [code, name] of Object.entries(requiredCourses)) {
+        const normalizedRequired = normalizeCode(code);
+        const isTaken = normalizedTaken.some(taken => 
+          taken === normalizedRequired || taken.includes(normalizedRequired) || normalizedRequired.includes(taken)
+        );
+        if (!isTaken) missing.push(`${code} ${name}`);
+      }
+      return missing;
+    };
+
+    const mainMissingCourses = findMissingCourses(studentInfo.mainDepartment, mainMajorCourses);
+
+    // 공통 요건
     const statuses: CompletionStatus[] = [
       {
-        category: '총 이수학점',
-        required: totalRequired,
-        completed: totalCredits,
-        remaining: Math.max(0, totalRequired - totalCredits),
-        passed: totalCredits >= totalRequired,
+        category: '총 이수학점', required: totalRequired, completed: totalCredits,
+        remaining: Math.max(0, totalRequired - totalCredits), passed: totalCredits >= totalRequired,
       },
       {
-        category: '교양필수',
-        required: commonReqs.liberalRequired,
-        completed: creditsByCategory['교양필수'] || 0,
+        category: '교양필수', required: commonReqs.liberalRequired, completed: creditsByCategory['교양필수'] || 0,
         remaining: Math.max(0, commonReqs.liberalRequired - (creditsByCategory['교양필수'] || 0)),
         passed: (creditsByCategory['교양필수'] || 0) >= commonReqs.liberalRequired,
       },
       {
-        category: '인문사회선택',
-        required: commonReqs.liberalElective,
-        completed: creditsByCategory['인문사회선택'] || 0,
+        category: '인문사회선택', required: commonReqs.liberalElective, completed: creditsByCategory['인문사회선택'] || 0,
         remaining: Math.max(0, commonReqs.liberalElective - (creditsByCategory['인문사회선택'] || 0)),
         passed: (creditsByCategory['인문사회선택'] || 0) >= commonReqs.liberalElective,
-        details: hasDoubleMajor ? ['복수전공자: 12학점 (핵심 1과목 포함)'] : undefined,
+        details: hasDoubleMajor ? ['복수전공자: 12학점'] : undefined,
       },
       {
-        category: '기초필수',
-        required: commonReqs.basicRequired,
-        completed: creditsByCategory['기초필수'] || 0,
+        category: '기초필수', required: commonReqs.basicRequired, completed: creditsByCategory['기초필수'] || 0,
         remaining: Math.max(0, commonReqs.basicRequired - (creditsByCategory['기초필수'] || 0)),
         passed: (creditsByCategory['기초필수'] || 0) >= commonReqs.basicRequired,
       },
       {
-        category: '기초선택',
-        required: basicElectiveRequired,
-        completed: creditsByCategory['기초선택'] || 0,
+        category: '기초선택', required: basicElectiveRequired, completed: creditsByCategory['기초선택'] || 0,
         remaining: Math.max(0, basicElectiveRequired - (creditsByCategory['기초선택'] || 0)),
         passed: (creditsByCategory['기초선택'] || 0) >= basicElectiveRequired,
       },
     ];
 
+    // 주전공 요건
     const mainMajorStatuses: CompletionStatus[] = [
       {
-        category: '전공필수',
-        required: deptReqs.majorRequired,
-        completed: mainMajorCredits.전필,
+        category: '전공필수', required: deptReqs.majorRequired, completed: mainMajorCredits.전필,
         remaining: Math.max(0, deptReqs.majorRequired - mainMajorCredits.전필),
-        passed: mainMajorCredits.전필 >= deptReqs.majorRequired,
+        passed: mainMajorCredits.전필 >= deptReqs.majorRequired && mainMissingCourses.length === 0,
+        missingCourses: mainMissingCourses.length > 0 ? mainMissingCourses : undefined,
       },
       {
-        category: '전공선택',
-        required: deptReqs.majorElective,
-        completed: mainMajorCredits.전선,
+        category: '전공선택', required: deptReqs.majorElective, completed: mainMajorCredits.전선,
         remaining: Math.max(0, deptReqs.majorElective - mainMajorCredits.전선),
         passed: mainMajorCredits.전선 >= deptReqs.majorElective,
       },
       {
-        category: '연구',
-        required: deptReqs.research,
-        completed: creditsByCategory['연구'] || 0,
-        remaining: Math.max(0, deptReqs.research - (creditsByCategory['연구'] || 0)),
-        passed: (creditsByCategory['연구'] || 0) >= deptReqs.research,
+        category: '연구', required: researchRequired, completed: creditsByCategory['연구'] || 0,
+        remaining: Math.max(0, researchRequired - (creditsByCategory['연구'] || 0)),
+        passed: (creditsByCategory['연구'] || 0) >= researchRequired,
+        details: hasDoubleMajor && researchRequired === 0 ? ['복수전공자: 연구 면제'] : undefined,
       },
     ];
 
-    const doubleMajorStatuses: CompletionStatus[] = [];
+    // 복수전공 요건
+    const doubleMajorStatuses: { dept: string; statuses: CompletionStatus[] }[] = [];
     studentInfo.doubleMajors.forEach(dept => {
       const dmReqKey = getRequirementKey(dept, studentInfo.admissionYear);
       const dmReqs = departmentRequirements[dept]?.[dmReqKey];
-      const dmRequired = dmReqs?.doubleMajorRequired || 40;
-      const dmCompleted = doubleMajorCredits[dept].전필 + doubleMajorCredits[dept].전선;
+      const dmMajorRequired = dmReqs?.doubleMajorMajorRequired ?? dmReqs?.majorRequired ?? 15;
+      const dmTotalRequired = dmReqs?.doubleMajorRequired ?? 40;
+      const dmElectiveRequired = Math.max(0, dmTotalRequired - dmMajorRequired);
+      const dmMissingCourses = findMissingCourses(dept, doubleMajorCourses[dept]);
       
-      doubleMajorStatuses.push({
-        category: dept,
-        required: dmRequired,
-        completed: dmCompleted,
-        remaining: Math.max(0, dmRequired - dmCompleted),
-        passed: dmCompleted >= dmRequired,
-        details: ['최대 6학점 중복인정 가능'],
+      const dmStatuses: CompletionStatus[] = [];
+      
+      if (dmMajorRequired > 0) {
+        dmStatuses.push({
+          category: '전공필수', required: dmMajorRequired, completed: doubleMajorCredits[dept].전필,
+          remaining: Math.max(0, dmMajorRequired - doubleMajorCredits[dept].전필),
+          passed: doubleMajorCredits[dept].전필 >= dmMajorRequired,
+          missingCourses: dmMissingCourses.length > 0 ? dmMissingCourses : undefined,
+        });
+        dmStatuses.push({
+          category: '전공선택', required: dmElectiveRequired, completed: doubleMajorCredits[dept].전선,
+          remaining: Math.max(0, dmElectiveRequired - doubleMajorCredits[dept].전선),
+          passed: doubleMajorCredits[dept].전선 >= dmElectiveRequired,
+        });
+      }
+      
+      dmStatuses.push({
+        category: '복수전공 총계', required: dmTotalRequired,
+        completed: doubleMajorCredits[dept].전필 + doubleMajorCredits[dept].전선,
+        remaining: Math.max(0, dmTotalRequired - doubleMajorCredits[dept].전필 - doubleMajorCredits[dept].전선),
+        passed: (doubleMajorCredits[dept].전필 + doubleMajorCredits[dept].전선) >= dmTotalRequired,
+        details: dmReqs?.doubleMajorNotes || ['최대 6학점 중복인정 가능'],
       });
+      
+      doubleMajorStatuses.push({ dept, statuses: dmStatuses });
     });
 
-    const minorStatuses: CompletionStatus[] = [];
+    // 부전공 요건
+    const minorStatuses: { dept: string; statuses: CompletionStatus[] }[] = [];
     studentInfo.minors.forEach(dept => {
       const mnReqKey = getRequirementKey(dept, studentInfo.admissionYear);
       const mnReqs = departmentRequirements[dept]?.[mnReqKey];
-      const mnRequired = mnReqs?.minorRequired || 18;
-      const mnCompleted = minorCredits[dept].total;
+      const mnMajorRequired = mnReqs?.minorMajorRequired ?? 0;
+      const mnTotalRequired = mnReqs?.minorRequired ?? 18;
+      const mnElectiveRequired = Math.max(0, mnTotalRequired - mnMajorRequired);
+      const mnMissingCourses = mnMajorRequired > 0 ? findMissingCourses(dept, minorCourses[dept]) : [];
       
-      minorStatuses.push({
-        category: dept,
-        required: mnRequired,
-        completed: mnCompleted,
-        remaining: Math.max(0, mnRequired - mnCompleted),
-        passed: mnCompleted >= mnRequired,
+      const mnStatuses: CompletionStatus[] = [];
+      
+      // 부전공에 전공필수 요건이 있는 경우
+      if (mnMajorRequired > 0) {
+        mnStatuses.push({
+          category: '전공필수', required: mnMajorRequired, completed: minorCredits[dept].전필,
+          remaining: Math.max(0, mnMajorRequired - minorCredits[dept].전필),
+          passed: minorCredits[dept].전필 >= mnMajorRequired,
+          missingCourses: mnMissingCourses.length > 0 ? mnMissingCourses : undefined,
+          details: mnReqs?.minorNotes,
+        });
+        mnStatuses.push({
+          category: '전공선택', required: mnElectiveRequired, completed: minorCredits[dept].전선,
+          remaining: Math.max(0, mnElectiveRequired - minorCredits[dept].전선),
+          passed: minorCredits[dept].전선 >= mnElectiveRequired,
+        });
+      }
+      
+      mnStatuses.push({
+        category: '부전공 총계', required: mnTotalRequired,
+        completed: minorCredits[dept].전필 + minorCredits[dept].전선,
+        remaining: Math.max(0, mnTotalRequired - minorCredits[dept].전필 - minorCredits[dept].전선),
+        passed: (minorCredits[dept].전필 + minorCredits[dept].전선) >= mnTotalRequired,
+        details: mnMajorRequired === 0 ? mnReqs?.minorNotes : ['타 학사조직 전공과목 중복 인정 불가'],
       });
+      
+      minorStatuses.push({ dept, statuses: mnStatuses });
     });
 
+    // 심화전공
     const advancedMajorStatuses: CompletionStatus[] = [];
     if (studentInfo.advancedMajor && deptReqs.advancedMajorRequired) {
       const advancedCompleted = Math.max(0, mainMajorCredits.전선 - deptReqs.majorElective);
       advancedMajorStatuses.push({
-        category: '심화전공',
-        required: deptReqs.advancedMajorRequired,
-        completed: advancedCompleted,
+        category: '심화전공', required: deptReqs.advancedMajorRequired, completed: advancedCompleted,
         remaining: Math.max(0, deptReqs.advancedMajorRequired - advancedCompleted),
-        passed: mainMajorCredits.전선 >= deptReqs.majorElective + deptReqs.advancedMajorRequired,
-        details: ['전공선택 초과 학점 반영'],
+        passed: advancedCompleted >= deptReqs.advancedMajorRequired,
+        details: ['전공선택 초과 학점으로 충족'],
       });
     }
 
+    // 자유융합전공
     const freeFusionStatuses: CompletionStatus[] = [];
     if (studentInfo.freeFusionMajor) {
       freeFusionStatuses.push({
-        category: '자유융합전공',
-        required: 12,
-        completed: 0,
-        remaining: 12,
-        passed: false,
-        details: ['2개 이상 타 학과 전공과목 12학점'],
+        category: '자유융합전공', required: 12, completed: 0, remaining: 12, passed: false,
+        details: ['2개 이상 타 학과 전공과목 12학점 (별도 확인 필요)'],
       });
     }
 
+    // AU
     const auStatuses: CompletionStatus[] = [];
-    if (commonReqs.au && commonReqs.au > 0) {
+    if (commonReqs.au > 0) {
       auStatuses.push({
-        category: 'AU',
-        required: commonReqs.au,
-        completed: totalAU,
-        remaining: Math.max(0, commonReqs.au - totalAU),
-        passed: totalAU >= commonReqs.au,
+        category: 'AU', required: commonReqs.au, completed: totalAU,
+        remaining: Math.max(0, commonReqs.au - totalAU), passed: totalAU >= commonReqs.au,
       });
     }
 
+    // GPA
     const gpaStatus: CompletionStatus = {
-      category: '평균 평점',
-      required: 2.0,
-      completed: parseFloat(gpa.toFixed(2)),
-      remaining: gpa >= 2.0 ? 0 : parseFloat((2.0 - gpa).toFixed(2)),
-      passed: gpa >= 2.0,
+      category: '평균 평점', required: 2.0, completed: parseFloat(gpa.toFixed(2)),
+      remaining: gpa >= 2.0 ? 0 : parseFloat((2.0 - gpa).toFixed(2)), passed: gpa >= 2.0,
     };
 
-    const allStatuses = [
-      ...statuses, 
-      ...mainMajorStatuses, 
-      ...doubleMajorStatuses, 
-      ...minorStatuses,
-      ...advancedMajorStatuses,
-      ...freeFusionStatuses,
-      ...auStatuses,
-    ];
-    
-    const overallPassed = allStatuses.every((s) => s.passed) && gpa >= 2.0;
+    const overallPassed = 
+      [...statuses, ...mainMajorStatuses].every(s => s.passed) &&
+      doubleMajorStatuses.every(dm => dm.statuses.every(s => s.passed)) &&
+      minorStatuses.every(mn => mn.statuses.every(s => s.passed)) &&
+      (advancedMajorStatuses.length === 0 || advancedMajorStatuses.every(s => s.passed)) &&
+      (auStatuses.length === 0 || auStatuses.every(s => s.passed)) &&
+      gpa >= 2.0;
 
     return {
-      statuses,
-      mainMajorStatuses,
-      doubleMajorStatuses,
-      minorStatuses,
-      advancedMajorStatuses,
-      freeFusionStatuses,
-      auStatuses,
-      gpaStatus,
-      overallPassed,
-      totalCredits,
-      gpa,
-      creditsByCategory,
-      deptReqs,
-      totalAU,
-      hasDoubleMajor,
+      statuses, mainMajorStatuses, doubleMajorStatuses, minorStatuses,
+      advancedMajorStatuses, freeFusionStatuses, auStatuses, gpaStatus,
+      overallPassed, totalCredits, gpa, deptReqs, totalAU,
     };
   }, [studentInfo, courses]);
 
@@ -544,20 +543,26 @@ const ResultPage: React.FC = () => {
             {status.passed ? '✓ 충족' : '미충족'}
           </RequirementStatus>
         </RequirementHeader>
-        <ProgressContainer>
-          <ProgressBar>
-            <ProgressFill $percentage={percentage} $passed={status.passed} />
-          </ProgressBar>
-          <ProgressInfo>
-            <ProgressText>{Math.min(100, Math.round(percentage))}%</ProgressText>
-            <ProgressNumbers>
-              {status.completed} / {status.required}
-              {status.remaining > 0 && <span style={{ color: '#c62828' }}> (-{status.remaining})</span>}
-            </ProgressNumbers>
-          </ProgressInfo>
-        </ProgressContainer>
+        <ProgressBar>
+          <ProgressFill $percentage={percentage} $passed={status.passed} />
+        </ProgressBar>
+        <ProgressInfo>
+          <ProgressText>{Math.min(100, Math.round(percentage))}%</ProgressText>
+          <ProgressNumbers>
+            {status.completed} / {status.required}
+            {status.remaining > 0 && <span style={{ color: '#c62828' }}> (-{status.remaining})</span>}
+          </ProgressNumbers>
+        </ProgressInfo>
         {status.details && status.details.length > 0 && (
           <DetailText>{status.details.join(' · ')}</DetailText>
+        )}
+        {status.missingCourses && status.missingCourses.length > 0 && (
+          <MissingCourseBox>
+            <MissingCourseTitle>📋 미이수 전공필수 과목</MissingCourseTitle>
+            <MissingCourseList>
+              {status.missingCourses.map((course, idx) => <div key={idx}>• {course}</div>)}
+            </MissingCourseList>
+          </MissingCourseBox>
         )}
       </RequirementItem>
     );
@@ -568,7 +573,7 @@ const ResultPage: React.FC = () => {
       <Wrapper>
         <Header>
           <Title>졸업요건 분석 결과</Title>
-          <Subtitle>{studentInfo.mainDepartment} · {studentInfo.admissionYear}</Subtitle>
+          <Subtitle>{studentInfo.mainDepartment} · {studentInfo.admissionYear}학번</Subtitle>
         </Header>
 
         <StatusBanner $passed={analysisResult.overallPassed}>
@@ -577,41 +582,27 @@ const ResultPage: React.FC = () => {
             {analysisResult.overallPassed ? '졸업요건을 충족했어요!' : '아직 충족하지 못한 요건이 있어요'}
           </StatusText>
           <StatusSubtext>
-            {analysisResult.overallPassed 
-              ? '축하합니다! 모든 요건을 충족했습니다' 
-              : '아래에서 상세 내역을 확인해주세요'}
+            {analysisResult.overallPassed ? '축하합니다!' : '아래에서 상세 내역을 확인해주세요'}
           </StatusSubtext>
         </StatusBanner>
 
         <Card>
           <SummaryGrid>
-            <SummaryItem>
-              <SummaryValue>{analysisResult.totalCredits}</SummaryValue>
-              <SummaryLabel>이수학점</SummaryLabel>
-            </SummaryItem>
-            <SummaryItem>
-              <SummaryValue>{analysisResult.gpa.toFixed(2)}</SummaryValue>
-              <SummaryLabel>평점</SummaryLabel>
-            </SummaryItem>
-            <SummaryItem>
-              <SummaryValue>{analysisResult.totalAU}</SummaryValue>
-              <SummaryLabel>AU</SummaryLabel>
-            </SummaryItem>
-            <SummaryItem>
-              <SummaryValue>{courses.length}</SummaryValue>
-              <SummaryLabel>과목수</SummaryLabel>
-            </SummaryItem>
+            <SummaryItem><SummaryValue>{analysisResult.totalCredits}</SummaryValue><SummaryLabel>이수학점</SummaryLabel></SummaryItem>
+            <SummaryItem><SummaryValue>{analysisResult.gpa.toFixed(2)}</SummaryValue><SummaryLabel>평점</SummaryLabel></SummaryItem>
+            <SummaryItem><SummaryValue>{analysisResult.totalAU}</SummaryValue><SummaryLabel>AU</SummaryLabel></SummaryItem>
+            <SummaryItem><SummaryValue>{courses.length}</SummaryValue><SummaryLabel>과목수</SummaryLabel></SummaryItem>
           </SummaryGrid>
         </Card>
 
         <Card>
           <CardTitle>학생 정보</CardTitle>
           <InfoGrid>
-            <InfoChip>{studentInfo.admissionYear} 입학</InfoChip>
+            <InfoChip>{studentInfo.admissionYear}학번</InfoChip>
             <InfoChip>{studentInfo.mainDepartment}</InfoChip>
             {studentInfo.advancedMajor && <TagChip>심화전공</TagChip>}
             {studentInfo.freeFusionMajor && <TagChip>자유융합전공</TagChip>}
-            {studentInfo.doubleMajors.map(d => <TagChip key={d}>복수 · {d}</TagChip>)}
+            {studentInfo.doubleMajors.map(d => <TagChip key={d}>복수전공 · {d}</TagChip>)}
             {studentInfo.minors.map(d => <TagChip key={d}>부전공 · {d}</TagChip>)}
           </InfoGrid>
         </Card>
@@ -620,90 +611,60 @@ const ResultPage: React.FC = () => {
           <CardTitle>상세 요건</CardTitle>
 
           <SectionTitle>공통 요건</SectionTitle>
-          <RequirementList>
-            {analysisResult.statuses.map(renderRequirementItem)}
-          </RequirementList>
+          <RequirementList>{analysisResult.statuses.map(renderRequirementItem)}</RequirementList>
 
           <SectionTitle>주전공 ({studentInfo.mainDepartment})</SectionTitle>
-          <RequirementList>
-            {analysisResult.mainMajorStatuses.map(renderRequirementItem)}
-          </RequirementList>
+          <RequirementList>{analysisResult.mainMajorStatuses.map(renderRequirementItem)}</RequirementList>
 
-          {analysisResult.doubleMajorStatuses.length > 0 && (
-            <>
-              <SectionTitle>복수전공</SectionTitle>
-              <RequirementList>
-                {analysisResult.doubleMajorStatuses.map(renderRequirementItem)}
-              </RequirementList>
-            </>
-          )}
+          {analysisResult.doubleMajorStatuses.map(dm => (
+            <React.Fragment key={dm.dept}>
+              <SectionTitle>복수전공 ({dm.dept})</SectionTitle>
+              <RequirementList>{dm.statuses.map(renderRequirementItem)}</RequirementList>
+            </React.Fragment>
+          ))}
 
-          {analysisResult.minorStatuses.length > 0 && (
-            <>
-              <SectionTitle>부전공</SectionTitle>
-              <RequirementList>
-                {analysisResult.minorStatuses.map(renderRequirementItem)}
-              </RequirementList>
-            </>
-          )}
+          {analysisResult.minorStatuses.map(mn => (
+            <React.Fragment key={mn.dept}>
+              <SectionTitle>부전공 ({mn.dept})</SectionTitle>
+              <RequirementList>{mn.statuses.map(renderRequirementItem)}</RequirementList>
+            </React.Fragment>
+          ))}
 
           {analysisResult.advancedMajorStatuses.length > 0 && (
             <>
               <SectionTitle>심화전공</SectionTitle>
-              <RequirementList>
-                {analysisResult.advancedMajorStatuses.map(renderRequirementItem)}
-              </RequirementList>
+              <RequirementList>{analysisResult.advancedMajorStatuses.map(renderRequirementItem)}</RequirementList>
             </>
           )}
 
           {analysisResult.freeFusionStatuses.length > 0 && (
             <>
               <SectionTitle>자유융합전공</SectionTitle>
-              <RequirementList>
-                {analysisResult.freeFusionStatuses.map(renderRequirementItem)}
-              </RequirementList>
+              <RequirementList>{analysisResult.freeFusionStatuses.map(renderRequirementItem)}</RequirementList>
             </>
           )}
 
-          {analysisResult.auStatuses.length > 0 && (
-            <>
-              <SectionTitle>기타</SectionTitle>
-              <RequirementList>
-                {analysisResult.auStatuses.map(renderRequirementItem)}
-                {renderRequirementItem(analysisResult.gpaStatus)}
-              </RequirementList>
-            </>
-          )}
-
-          {analysisResult.auStatuses.length === 0 && (
-            <>
-              <SectionTitle>기타</SectionTitle>
-              <RequirementList>
-                {renderRequirementItem(analysisResult.gpaStatus)}
-              </RequirementList>
-            </>
-          )}
+          <SectionTitle>기타</SectionTitle>
+          <RequirementList>
+            {analysisResult.auStatuses.map(renderRequirementItem)}
+            {renderRequirementItem(analysisResult.gpaStatus)}
+          </RequirementList>
         </Card>
 
         {analysisResult.deptReqs.notes && analysisResult.deptReqs.notes.length > 0 && (
           <Card>
             <CardTitle>학과 참고사항</CardTitle>
             <div style={{ color: '#4e5968', fontSize: '14px', lineHeight: '1.6' }}>
-              {analysisResult.deptReqs.notes.map((note, index) => (
-                <div key={index} style={{ marginBottom: '8px' }}>• {note}</div>
-              ))}
+              {analysisResult.deptReqs.notes.map((note, i) => <div key={i} style={{ marginBottom: '8px' }}>• {note}</div>)}
             </div>
           </Card>
         )}
 
         <NoticeBox>
           ⚠️ 이 결과는 참고용입니다. 정확한 졸업요건은 학과 사무실 또는 학적팀에서 확인해주세요.
-          영어 성적, 윤리 및 안전 이수 등은 별도 확인이 필요합니다.
         </NoticeBox>
 
-        <SecondaryButton onClick={() => navigate('/')}>
-          다시 확인하기
-        </SecondaryButton>
+        <SecondaryButton onClick={() => navigate('/')}>다시 확인하기</SecondaryButton>
       </Wrapper>
     </Container>
   );

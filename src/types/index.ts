@@ -1,5 +1,5 @@
-// 학번 범위 타입
-export type AdmissionYear = '2015이전' | '2016-2019' | '2020-2022' | '2023이후';
+// 구체적 입학년도 (2010~2025)
+export type AdmissionYear = number;
 
 // 학과 목록
 export const DEPARTMENTS = [
@@ -26,15 +26,14 @@ export const DEPARTMENTS = [
 
 export type Department = typeof DEPARTMENTS[number];
 
-// 학생 정보 인터페이스 - 복수전공/부전공 다중 선택 지원
+// 학생 정보 인터페이스
 export interface StudentInfo {
   admissionYear: AdmissionYear;
   mainDepartment: Department;
-  // 심화전공/복수전공/부전공/자유융합전공 중 하나 이상 필수 선택
-  advancedMajor: boolean; // 심화전공
-  freeFusionMajor: boolean; // 자유융합전공
-  doubleMajors: Department[]; // 복수전공 (여러 개 가능)
-  minors: Department[]; // 부전공 (여러 개 가능)
+  advancedMajor: boolean;
+  freeFusionMajor: boolean;
+  doubleMajors: Department[];
+  minors: Department[];
 }
 
 // 과목 정보 인터페이스
@@ -44,7 +43,7 @@ export interface Course {
   courseCode: string;
   courseNumber: string;
   division: string;
-  category: string; // 구분 (기필, 전필, 전선, 교필, 인선 등)
+  category: string;
   courseName: string;
   englishName: string;
   credits: number;
@@ -84,6 +83,7 @@ export interface CompletionStatus {
   remaining: number;
   passed: boolean;
   details?: string[];
+  missingCourses?: string[];
 }
 
 // 졸업요건 검사 결과
