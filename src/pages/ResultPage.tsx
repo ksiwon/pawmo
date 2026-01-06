@@ -8,6 +8,7 @@ import {
   departmentRequirements,
   getRequirementKey,
   majorRequiredCourseInfo,
+  getPhysicalEducationAUInfo,
 } from '../data/requirements';
 
 const Container = styled.div`
@@ -327,6 +328,7 @@ const ResultPage: React.FC = () => {
     const gpa = gradedCredits > 0 ? totalGradePoints / gradedCredits : 0;
     const totalRequired = getTotalCredits(studentInfo.admissionYear);
     const commonReqs = getCommonRequirements(studentInfo.admissionYear, hasDoubleMajor);
+    const peAUInfo = getPhysicalEducationAUInfo(studentInfo.admissionYear);
     const reqKey = getRequirementKey(studentInfo.mainDepartment, studentInfo.admissionYear);
     const deptReqs = departmentRequirements[studentInfo.mainDepartment]?.[reqKey] || {
       majorRequired: 18, majorElective: 24, research: 3,
@@ -356,10 +358,15 @@ const ResultPage: React.FC = () => {
     const mainMissingCourses = findMissingCourses(studentInfo.mainDepartment, mainMajorCourses);
 
     // 공통 요건
+    // 2022학년도 이전 입학생: 체육 AU 대체로 총 이수학점 +2
+    const peAUSubstituteCredits = peAUInfo.required ? peAUInfo.substituteCredits : 0;
+    const adjustedTotalRequired = totalRequired + peAUSubstituteCredits;
+    
     const statuses: CompletionStatus[] = [
       {
-        category: '총 이수학점', required: totalRequired, completed: totalCredits,
-        remaining: Math.max(0, totalRequired - totalCredits), passed: totalCredits >= totalRequired,
+        category: '총 이수학점', required: adjustedTotalRequired, completed: totalCredits,
+        remaining: Math.max(0, adjustedTotalRequired - totalCredits), passed: totalCredits >= adjustedTotalRequired,
+        details: peAUSubstituteCredits > 0 ? [`체육 AU 대체로 ${totalRequired}+${peAUSubstituteCredits}=${adjustedTotalRequired}학점 필요`] : undefined,
       },
       {
         category: '교양필수', required: commonReqs.liberalRequired, completed: creditsByCategory['교양필수'] || 0,
@@ -504,10 +511,15 @@ const ResultPage: React.FC = () => {
 
     // AU
     const auStatuses: CompletionStatus[] = [];
+    
     if (commonReqs.au > 0) {
+      // 2022학년도 이전 입학생: 체육 4AU 제외한 AU만 표시
+      const generalAURequired = peAUInfo.required ? commonReqs.au - peAUInfo.requiredAU : commonReqs.au;
+      
       auStatuses.push({
-        category: 'AU', required: commonReqs.au, completed: totalAU,
-        remaining: Math.max(0, commonReqs.au - totalAU), passed: totalAU >= commonReqs.au,
+        category: 'AU', required: generalAURequired, completed: totalAU,
+        remaining: Math.max(0, generalAURequired - totalAU), passed: totalAU >= generalAURequired,
+        details: peAUInfo.required ? ['체육 4AU는 총 이수학점 +2로 대체됨'] : undefined,
       });
     }
 

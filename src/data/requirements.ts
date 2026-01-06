@@ -14,6 +14,44 @@ export const getAURequirement = (year: number): number => {
   return 4; // 2023 이후
 };
 
+// 체육 AU 관련 규정 (2023년 폐지)
+export interface PhysicalEducationAUInfo {
+  required: boolean;
+  requiredAU: number;
+  canSubstituteWithCredits: boolean;
+  substituteCredits: number;
+  auToCreditsRatio: number; // 이미 취득한 AU를 학점으로 환산 시 비율 (1AU = 1학점)
+  notes: string[];
+}
+
+export const getPhysicalEducationAUInfo = (year: number): PhysicalEducationAUInfo => {
+  // 2023학년도 이후 입학생: 체육 AU 해당사항 없음
+  if (year >= 2023) {
+    return {
+      required: false,
+      requiredAU: 0,
+      canSubstituteWithCredits: false,
+      substituteCredits: 0,
+      auToCreditsRatio: 0,
+      notes: ['2023학년도 입학생: 체육 AU 해당사항 없음'],
+    };
+  }
+  
+  // 2022학년도 이전 입학생: 체육 4AU 대신 2학점 대체 가능
+  return {
+    required: true,
+    requiredAU: 4,
+    canSubstituteWithCredits: true,
+    substituteCredits: 2, // 체육 4AU 대신 교양, 기초, 전공, 연구과목 중 2학점으로 대체 가능
+    auToCreditsRatio: 1, // 이미 취득한 AU는 1AU당 1학점으로 대체 인정
+    notes: [
+      '체육 4AU 대신 교양, 기초, 전공, 연구과목 중 자유롭게 2학점 이수로 대체 가능',
+      '이미 취득한 체육 AU는 1AU당 1학점으로 대체 인정',
+      '체육AU 폐지로 체육동아리 활동은 학점으로 인정하지 않음',
+    ],
+  };
+};
+
 // 공통 교양 요건
 export const getCommonRequirements = (year: number, hasDoubleMajor: boolean = false) => {
   const liberalElective = hasDoubleMajor ? 12 : 21;
