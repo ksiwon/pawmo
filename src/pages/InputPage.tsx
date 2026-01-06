@@ -21,16 +21,29 @@ const Header = styled.div`
   margin-bottom: 32px;
 `;
 
-const Title = styled.h1`
-  font-size: 26px;
-  font-weight: 700;
-  color: #191f28;
+const MainTitle = styled.h1`
+  font-size: 48px;
+  font-weight: 800;
+  color: #3182f6;
   margin-bottom: 8px;
 `;
 
-const Subtitle = styled.p`
-  font-size: 15px;
+const SubTitle = styled.h2`
+  font-size: 20px;
+  font-weight: 600;
+  color: #191f28;
+  margin-bottom: 12px;
+`;
+
+const MadeByLink = styled.a`
+  font-size: 14px;
   color: #8b95a1;
+  text-decoration: none;
+  transition: color 0.2s;
+  &:hover {
+    color: #3182f6;
+    text-decoration: underline;
+  }
 `;
 
 const Card = styled.div`
@@ -450,8 +463,11 @@ const InputPage: React.FC = () => {
     <Container>
       <Wrapper>
         <Header>
-          <Title>KAIST 졸업요건 확인</Title>
-          <Subtitle>학번과 전공 정보를 입력해주세요</Subtitle>
+          <MainTitle>Pawmo</MainTitle>
+          <SubTitle>KAIST Graduation Checker</SubTitle>
+          <MadeByLink href="https://siwon.site" target="_blank" rel="noopener noreferrer">
+            Made by Siwon
+          </MadeByLink>
         </Header>
 
         <Card>
