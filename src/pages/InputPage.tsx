@@ -315,6 +315,7 @@ const InputPage: React.FC = () => {
       const workbook = XLSX.read(data, { type: 'binary' });
       const sheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[sheetName];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const jsonData = XLSX.utils.sheet_to_json(worksheet) as any[];
 
       const parsedCourses: Course[] = jsonData.map((row) => ({
