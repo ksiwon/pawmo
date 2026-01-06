@@ -252,6 +252,82 @@ const InfoText = styled.p`
   margin-top: 8px;
 `;
 
+const CardTitleRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 20px;
+`;
+
+const HelpIconWrapper = styled.div`
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+`;
+
+const HelpIcon = styled.span`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  background: #e5e8eb;
+  color: #6b7684;
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  &:hover {
+    background: #3182f6;
+    color: white;
+  }
+`;
+
+const HelpOverlay = styled.div<{ $visible: boolean }>`
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  opacity: ${props => props.$visible ? 1 : 0};
+  visibility: ${props => props.$visible ? 'visible' : 'hidden'};
+  transition: opacity 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  img {
+    max-width: 95vw;
+    max-height: 95vh;
+    object-fit: contain;
+  }
+`;
+
+const CloseButton = styled.button`
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  border-radius: 50%;
+  color: white;
+  font-size: 24px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+  &:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+`;
+
 const InputPage: React.FC = () => {
   const navigate = useNavigate();
   const currentYear = new Date().getFullYear();
@@ -270,6 +346,7 @@ const InputPage: React.FC = () => {
     doubleMajors: [],
     minors: [],
   });
+  const [showHelpImage, setShowHelpImage] = useState(false);
   const [courses, setCourses] = useState<Course[]>([]);
   const [fileName, setFileName] = useState<string>('');
   const [selectedDoubleMajor, setSelectedDoubleMajor] = useState<string>('');
@@ -507,7 +584,16 @@ const InputPage: React.FC = () => {
         </Card>
 
         <Card>
-          <CardTitle>성적 파일</CardTitle>
+          <CardTitleRow>
+            <CardTitle style={{ marginBottom: 0 }}>성적 파일</CardTitle>
+            <HelpIconWrapper>
+              <HelpIcon onClick={() => setShowHelpImage(true)}>?</HelpIcon>
+            </HelpIconWrapper>
+          </CardTitleRow>
+          <HelpOverlay $visible={showHelpImage} onClick={() => setShowHelpImage(false)}>
+            <CloseButton onClick={() => setShowHelpImage(false)}>×</CloseButton>
+            <img src="/where_excel.png" alt="엑셀 파일 위치 안내" onClick={(e) => e.stopPropagation()} />
+          </HelpOverlay>
           <FileInput $active={!!fileName}>
             <FileInputLabel>
               <HiddenInput type="file" accept=".xlsx,.xls" onChange={handleFileUpload} />
