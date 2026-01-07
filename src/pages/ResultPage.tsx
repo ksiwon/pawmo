@@ -262,6 +262,32 @@ const getCategoryFromRaw = (rawCategory: string): string => {
   return mapping[rawCategory] || rawCategory;
 };
 
+// 학과명 → 학과 코드 매핑
+const deptNameToCode: Record<string, string> = {
+  '물리학과': 'PH', '수리과학과': 'MAS', '화학과': 'CH', '생명과학과': 'BS',
+  '뇌인지과학과': 'BCS', '기계공학과': 'ME', '항공우주공학과': 'AE',
+  '전기및전자공학부': 'EE', '전산학부': 'CS', '건설및환경공학과': 'CE',
+  '바이오및뇌공학과': 'BiS', '산업디자인학과': 'ID', '산업및시스템공학과': 'IE',
+  '생명화학공학과': 'CBE', '신소재공학과': 'MS', '원자력및양자공학과': 'NQE',
+  '반도체시스템공학과': 'SS', '융합인재학부': 'TS', '기술경영학부': 'MSB',
+};
+
+// 학과 코드 → 학과명 매핑
+const deptCodeToName: Record<string, string> = {
+  'PH': '물리학과', 'MAS': '수리과학과', 'CH': '화학과', 'BS': '생명과학과',
+  'BCS': '뇌인지과학과', 'ME': '기계공학과', 'AE': '항공우주공학과',
+  'EE': '전기및전자공학부', 'CS': '전산학부', 'CE': '건설및환경공학과',
+  'BiS': '바이오및뇌공학과', 'ID': '산업디자인학과', 'IE': '산업및시스템공학과',
+  'CBE': '생명화학공학과', 'MS': '신소재공학과', 'NQE': '원자력및양자공학과',
+  'SS': '반도체시스템공학과', 'TS': '융합인재학부', 'MSB': '기술경영학부',
+  'CoE': '공과대학',
+};
+
+// 과목 코드에서 학과 코드 추출 (예: "CS.101" → "CS")
+const getDeptCodeFromCourse = (courseCode: string): string => {
+  return courseCode.split('.')[0];
+};
+
 const normalizeCode = (code: string): string => code.replace(/[.\s-]/g, '').toUpperCase();
 
 const ResultPage: React.FC = () => {
@@ -503,9 +529,52 @@ const ResultPage: React.FC = () => {
     // 자유융합전공
     const freeFusionStatuses: CompletionStatus[] = [];
     if (studentInfo.freeFusionMajor) {
+      const mainDeptCode = deptNameToCode[studentInfo.mainDepartment];
+      
+      // 소속 학과 제외, 전공과목(전필/전선)만 필터링
+      const otherDeptMajorCourses = courses.filter(c => {
+        const courseDeptCode = getDeptCodeFromCourse(c.courseCode);
+        const isMajorCourse = c.category === '전필' || c.category === '전선';
+        const isOtherDept = courseDeptCode !== mainDeptCode;
+        return isMajorCourse && isOtherDept;
+      });
+      
+      // 학과별 학점 집계
+      const deptCredits: Record<string, number> = {};
+      let freeFusionTotal = 0;
+      
+      otherDeptMajorCourses.forEach(course => {
+        const deptCode = getDeptCodeFromCourse(course.courseCode);
+        const deptName = deptCodeToName[deptCode] || deptCode;
+        deptCredits[deptName] = (deptCredits[deptName] || 0) + course.credits;
+        freeFusionTotal += course.credits;
+      });
+      
+      const deptCount = Object.keys(deptCredits).length;
+      const isSatisfied = freeFusionTotal >= 12 && deptCount >= 2;
+      
+      // 학과별 상세 내역 생성
+      const deptDetails = Object.entries(deptCredits)
+        .map(([dept, credits]) => `${dept}: ${credits}학점`)
+        .join(', ');
+      
+      const details: string[] = [];
+      if (deptCount < 2) {
+        details.push(`⚠️ 2개 이상 학사조직 필요 (현재: ${deptCount}개)`);
+      } else {
+        details.push(`✓ ${deptCount}개 학사조직 충족`);
+      }
+      if (deptDetails) {
+        details.push(deptDetails);
+      }
+      
       freeFusionStatuses.push({
-        category: '자유융합전공', required: 12, completed: 0, remaining: 12, passed: false,
-        details: ['2개 이상 타 학과 전공과목 12학점 (별도 확인 필요)'],
+        category: '자유융합전공',
+        required: 12,
+        completed: freeFusionTotal,
+        remaining: Math.max(0, 12 - freeFusionTotal),
+        passed: isSatisfied,
+        details,
       });
     }
 
@@ -534,6 +603,7 @@ const ResultPage: React.FC = () => {
       doubleMajorStatuses.every(dm => dm.statuses.every(s => s.passed)) &&
       minorStatuses.every(mn => mn.statuses.every(s => s.passed)) &&
       (advancedMajorStatuses.length === 0 || advancedMajorStatuses.every(s => s.passed)) &&
+      (freeFusionStatuses.length === 0 || freeFusionStatuses.every(s => s.passed)) &&  // 추가
       (auStatuses.length === 0 || auStatuses.every(s => s.passed)) &&
       gpa >= 2.0;
 
