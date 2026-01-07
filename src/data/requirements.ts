@@ -1,4 +1,5 @@
 // 졸업요건 데이터 - PDF 기반 정확한 데이터
+// 2026-01-07 검증 및 수정 완료
 
 // 입학년도에 따른 졸업 이수 학점
 export const getTotalCredits = (year: number): number => {
@@ -20,12 +21,11 @@ export interface PhysicalEducationAUInfo {
   requiredAU: number;
   canSubstituteWithCredits: boolean;
   substituteCredits: number;
-  auToCreditsRatio: number; // 이미 취득한 AU를 학점으로 환산 시 비율 (1AU = 1학점)
+  auToCreditsRatio: number;
   notes: string[];
 }
 
 export const getPhysicalEducationAUInfo = (year: number): PhysicalEducationAUInfo => {
-  // 2023학년도 이후 입학생: 체육 AU 해당사항 없음
   if (year >= 2023) {
     return {
       required: false,
@@ -37,13 +37,12 @@ export const getPhysicalEducationAUInfo = (year: number): PhysicalEducationAUInf
     };
   }
   
-  // 2022학년도 이전 입학생: 체육 4AU 대신 2학점 대체 가능
   return {
     required: true,
     requiredAU: 4,
     canSubstituteWithCredits: true,
-    substituteCredits: 2, // 체육 4AU 대신 교양, 기초, 전공, 연구과목 중 2학점으로 대체 가능
-    auToCreditsRatio: 1, // 이미 취득한 AU는 1AU당 1학점으로 대체 인정
+    substituteCredits: 2,
+    auToCreditsRatio: 1,
     notes: [
       '체육 4AU 대신 교양, 기초, 전공, 연구과목 중 자유롭게 2학점 이수로 대체 가능',
       '이미 취득한 체육 AU는 1AU당 1학점으로 대체 인정',
@@ -157,6 +156,35 @@ export const majorRequiredCourseInfo: Record<string, Record<string, string>> = {
     'BTM.20004': '기술경영개론',
     'BTM.30051': '기술창업론',
   },
+  '바이오및뇌공학과': {
+    'BiS.20000': 'Bioengineering Fundamentals',
+    'BiS.22200': 'Molecular and Cellular Biology',
+    'BiS.30100': 'Bioengineering Laboratory I',
+    'BiS.35000': 'Bioengineering Laboratory II',
+  },
+  '뇌인지과학과': {
+    'BCS.20000': '동물 신경해부학 및 신경생리학 실험',
+    'BCS.30020': '인간 신경해부학 및 신경생리학 실험',
+    'BCS.40010': '생체 데이터분석 및 모델링 실험',
+  },
+  '산업및시스템공학과': {
+    'IE.20001': '산업공학개론',
+    'IE.20003': '확률및통계',
+    'IE.20009': '경영과학모형및방법론',
+    'IE.30001': '생산계획및재고관리',
+    'IE.30002': '품질관리',
+    'IE.30003': '시뮬레이션',
+    'IE.30004': '경제성공학',
+    'IE.30005': '인간공학',
+  },
+  '신소재공학과': {
+    'MS.20001': '물리야금학',
+    'MS.20002': '재료열역학',
+    'MS.30001': '재료역학',
+    'MS.30002': '세라믹공학',
+    'MS.30003': '전자재료',
+    'MS.30004': '고분자공학',
+  },
 };
 
 // 학과별 전공 요건 인터페이스
@@ -182,7 +210,7 @@ export interface DepartmentMajorRequirements {
   notes?: string[];
 }
 
-// 모든 학과의 졸업요건 데이터 (PDF 기반)
+// 모든 학과의 졸업요건 데이터 (PDF 기반 - 2026-01-07 검증 완료)
 export const departmentRequirements: Record<string, Record<string, DepartmentMajorRequirements>> = {
   '전산학부': {
     '2015이전': {
@@ -215,12 +243,12 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
   },
   '전기및전자공학부': {
     '2015이전': {
-      majorRequired: 18, majorElective: 32, research: 3,
+      majorRequired: 18, majorElective: 35, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 21, minorMajorRequired: 12,
       minorRequiredCourses: ['EE.30005'],
       minorNotes: ['EE.30005 포함 전필 12학점'],
-      doubleMajorRequired: 40, doubleMajorMajorRequired: 15,
+      doubleMajorRequired: 40, doubleMajorMajorRequired: 18,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
     },
     '2016-2017': {
@@ -229,7 +257,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       minorRequired: 21, minorMajorRequired: 12,
       minorRequiredCourses: ['EE.30005'],
       minorNotes: ['EE.30005 포함 전필 12학점'],
-      doubleMajorRequired: 40, doubleMajorMajorRequired: 15,
+      doubleMajorRequired: 40, doubleMajorMajorRequired: 18,
       advancedMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
     },
@@ -285,37 +313,6 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
     },
   },
-  '수리과학과': {
-    '2015이전': {
-      majorRequired: 0, majorElective: 42, research: 3,
-      researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
-      minorNotes: ['MAS코드 18학점 (필수 없음)'],
-      doubleMajorRequired: 40, doubleMajorMajorRequired: 0,
-      doubleMajorNotes: ['필수선택 4과목 이상'],
-      basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
-    },
-    '2016-2022': {
-      majorRequired: 0, majorElective: 42, research: 3,
-      researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
-      minorNotes: ['MAS코드 18학점 (필수 없음)'],
-      doubleMajorRequired: 40, doubleMajorMajorRequired: 0,
-      doubleMajorNotes: ['권장선택 4과목 이상'],
-      advancedMajorRequired: 13,
-      basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
-    },
-    '2023이후': {
-      majorRequired: 0, majorElective: 42, research: 3,
-      researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
-      minorNotes: ['MAS코드 18학점 (필수 없음)'],
-      doubleMajorRequired: 40, doubleMajorMajorRequired: 0,
-      doubleMajorNotes: ['필수선택 4과목 이상'],
-      advancedMajorRequired: 13,
-      basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
-    },
-  },
   '화학과': {
     '2015이전': {
       majorRequired: 24, majorElective: 18, research: 3,
@@ -339,6 +336,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 24,
       advancedMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
+      notes: ['2025학년도부터 기초선택 CH.10004 삭제'],
     },
   },
   '생명과학과': {
@@ -349,7 +347,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 18,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
     },
-    '2016-2022': {
+    '2016-2023': {
       majorRequired: 18, majorElective: 24, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 21, minorMajorRequired: 12,
@@ -357,13 +355,14 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       advancedMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
     },
-    '2023이후': {
+    '2024이후': {
       majorRequired: 18, majorElective: 24, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 21, minorMajorRequired: 12,
       doubleMajorRequired: 40, doubleMajorMajorRequired: 18,
       advancedMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
+      notes: ['2024학년도부터 BS.20008 분자생물학 → BS.20023 분자생물학 전필 변경'],
     },
   },
   '기계공학과': {
@@ -375,7 +374,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
     },
-    '2016-2022': {
+    '2016-2021': {
       majorRequired: 12, majorElective: 36, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 21, minorMajorRequired: 6,
@@ -384,7 +383,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       advancedMajorRequired: 15,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
     },
-    '2023이후': {
+    '2022이후': {
       majorRequired: 9, majorElective: 36, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 21, minorMajorRequired: 6,
@@ -392,6 +391,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 9,
       advancedMajorRequired: 15,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
+      notes: ['전필 9학점 초과 이수시 전선으로 인정', '2022학년도 입학생부터 전필 12→9학점 변경'],
     },
   },
   '항공우주공학과': {
@@ -427,18 +427,19 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
     },
-    '2016-2022': {
+    '2016-2020': {
       majorRequired: 12, majorElective: 33, research: 3,
       researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 12,
+      minorRequired: 21, minorMajorRequired: 12,
       doubleMajorRequired: 40, doubleMajorMajorRequired: 12,
       advancedMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
     },
-    '2023이후': {
+    '2021이후': {
       majorRequired: 12, majorElective: 33, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 18, minorMajorRequired: 12,
+      minorNotes: ['전필 12학점 포함, 전선 6학점 이상', '2021학년도 입학생부터 부전공 21→18학점 변경'],
       doubleMajorRequired: 40, doubleMajorMajorRequired: 12,
       advancedMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
@@ -448,25 +449,19 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
     '2015이전': {
       majorRequired: 14, majorElective: 30, research: 5,
       researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
+      minorRequired: 18, minorMajorRequired: 14,
       doubleMajorRequired: 40, doubleMajorMajorRequired: 14,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
     },
-    '2016-2022': {
+    '2016이후': {
       majorRequired: 14, majorElective: 30, research: 5,
       researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
+      minorRequired: 18, minorMajorRequired: 14,
+      minorNotes: ['전필 14학점 포함'],
       doubleMajorRequired: 40, doubleMajorMajorRequired: 14,
       advancedMajorRequired: 12,
-      basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
-    },
-    '2023이후': {
-      majorRequired: 14, majorElective: 30, research: 5,
-      researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
-      doubleMajorRequired: 40, doubleMajorMajorRequired: 14,
-      advancedMajorRequired: 12,
-      basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
+      basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
+      notes: ['CoE코드 6학점까지 전선 인정'],
     },
   },
   '산업디자인학과': {
@@ -479,7 +474,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 15,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
     },
-    '2016-2022': {
+    '2016-2020': {
       majorRequired: 15, majorElective: 30, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 18, minorMajorRequired: 6,
@@ -489,13 +484,14 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       advancedMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
     },
-    '2023이후': {
+    '2021이후': {
       majorRequired: 15, majorElective: 30, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 18, minorMajorRequired: 6,
       minorRequiredCourses: ['ID.20013', 'ID.30001'],
-      minorNotes: ['ID213, ID301 포함 6학점'],
+      minorNotes: ['ID213 제품디자인, ID301 인터랙티브제품디자인 포함 6학점'],
       doubleMajorRequired: 40, doubleMajorMajorRequired: 15,
+      doubleMajorNotes: ['ID409, ID414 졸업연구 디자인 스튜디오 I,II 포함'],
       advancedMajorRequired: 12,
       basicElectiveOverride: 9, basicElectiveDoubleMajor: 6,
     },
@@ -509,16 +505,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 24,
       basicElectiveOverride: 3, basicElectiveDoubleMajor: 3,
     },
-    '2016-2022': {
-      majorRequired: 24, majorElective: 21, research: 4,
-      researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
-      minorNotes: ['전필/전선 구분없이 18학점'],
-      doubleMajorRequired: 40, doubleMajorMajorRequired: 24,
-      advancedMajorRequired: 12,
-      basicElectiveOverride: 3, basicElectiveDoubleMajor: 3,
-    },
-    '2023이후': {
+    '2016이후': {
       majorRequired: 24, majorElective: 21, research: 4,
       researchExemptForDoubleMajor: true,
       minorRequired: 18, minorMajorRequired: 0,
@@ -569,25 +556,39 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
     '2015이전': {
       majorRequired: 18, majorElective: 24, research: 3,
       researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
+      minorRequired: 18, minorMajorRequired: 9,
+      minorNotes: ['전필 9학점 이상, 전선 9학점 이상'],
       doubleMajorRequired: 40, doubleMajorMajorRequired: 18,
       basicElectiveDoubleMajor: 6,
     },
     '2016-2022': {
       majorRequired: 18, majorElective: 24, research: 3,
       researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
+      minorRequired: 18, minorMajorRequired: 9,
+      minorNotes: ['전필 9학점 이상, 전선 9학점 이상'],
       doubleMajorRequired: 40, doubleMajorMajorRequired: 18,
       advancedMajorRequired: 15,
       basicElectiveDoubleMajor: 6,
     },
-    '2023이후': {
+    '2023': {
       majorRequired: 18, majorElective: 24, research: 3,
       researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
+      minorRequired: 18, minorMajorRequired: 9,
+      minorNotes: ['전필 9학점 이상, 전선 9학점 이상'],
       doubleMajorRequired: 40, doubleMajorMajorRequired: 18,
-      advancedMajorRequired: 15,
+      advancedMajorRequired: 12,
       basicElectiveDoubleMajor: 6,
+      notes: ['2023학년도 입학생부터 심화전공 15→12학점 변경'],
+    },
+    '2024이후': {
+      majorRequired: 18, majorElective: 24, research: 3,
+      researchExemptForDoubleMajor: true,
+      minorRequired: 18, minorMajorRequired: 9,
+      minorNotes: ['전필 9학점 이상, 전선 9학점 이상'],
+      doubleMajorRequired: 42, doubleMajorMajorRequired: 18,
+      advancedMajorRequired: 12,
+      basicElectiveDoubleMajor: 6,
+      notes: ['2024학년도 입학생부터 복수전공 40→42학점 변경'],
     },
   },
   '원자력및양자공학과': {
@@ -598,15 +599,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 25,
       basicElectiveDoubleMajor: 6,
     },
-    '2016-2022': {
-      majorRequired: 25, majorElective: 18, research: 3,
-      researchExemptForDoubleMajor: true,
-      minorRequired: 21, minorMajorRequired: 15,
-      doubleMajorRequired: 40, doubleMajorMajorRequired: 25,
-      advancedMajorRequired: 12,
-      basicElectiveDoubleMajor: 6,
-    },
-    '2023이후': {
+    '2016이후': {
       majorRequired: 25, majorElective: 18, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 21, minorMajorRequired: 15,
@@ -616,25 +609,17 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
     },
   },
   '반도체시스템공학과': {
-    '2016-2022': {
+    '2016이후': {
       majorRequired: 18, majorElective: 35, research: 6,
       researchExemptForDoubleMajor: false,
       minorRequired: 0, minorMajorRequired: 0,
       doubleMajorRequired: 0, doubleMajorMajorRequired: 0,
       advancedMajorRequired: 12,
-      notes: ['부전공/복수전공 불가'],
-    },
-    '2023이후': {
-      majorRequired: 18, majorElective: 35, research: 6,
-      researchExemptForDoubleMajor: false,
-      minorRequired: 0, minorMajorRequired: 0,
-      doubleMajorRequired: 0, doubleMajorMajorRequired: 0,
-      advancedMajorRequired: 12,
-      notes: ['부전공/복수전공 불가'],
+      notes: ['부전공/복수전공 불가', '콜로키움 1학점 포함'],
     },
   },
   '융합인재학부': {
-    '2021-2022': {
+    '2021이후': {
       majorRequired: 21, majorElective: 21, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 18, minorMajorRequired: 0,
@@ -642,15 +627,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 42, doubleMajorMajorRequired: 18,
       advancedMajorRequired: 12,
       basicElectiveDoubleMajor: 3,
-    },
-    '2023이후': {
-      majorRequired: 21, majorElective: 21, research: 3,
-      researchExemptForDoubleMajor: true,
-      minorRequired: 18, minorMajorRequired: 0,
-      minorNotes: ['지성과문명강독/사회적혁신실험 중 18학점'],
-      doubleMajorRequired: 42, doubleMajorMajorRequired: 18,
-      advancedMajorRequired: 12,
-      basicElectiveDoubleMajor: 3,
+      notes: ['지성과문명강독 9학점 + 사회적혁신실험 12학점 필수'],
     },
   },
   '기술경영학부': {
@@ -663,7 +640,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       basicElectiveDoubleMajor: 6,
       notes: ['이공계 타학과 복수전공 필수'],
     },
-    '2016-2022': {
+    '2016-2023': {
       majorRequired: 9, majorElective: 39, research: 4,
       researchExemptForDoubleMajor: true,
       minorRequired: 18, minorMajorRequired: 6,
@@ -673,7 +650,7 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       basicElectiveDoubleMajor: 6,
       notes: ['이공계 타학과 복수전공 필수'],
     },
-    '2023이후': {
+    '2024이후': {
       majorRequired: 9, majorElective: 39, research: 4,
       researchExemptForDoubleMajor: true,
       minorRequired: 18, minorMajorRequired: 6,
@@ -681,17 +658,78 @@ export const departmentRequirements: Record<string, Record<string, DepartmentMaj
       doubleMajorRequired: 40, doubleMajorMajorRequired: 6,
       advancedMajorRequired: 12,
       basicElectiveDoubleMajor: 6,
-      notes: ['이공계 타학과 복수전공 필수'],
+      notes: ['이공계 타학과 복수전공 필수', '복수학위과정은 별도 요건 적용'],
     },
   },
   '뇌인지과학과': {
+    '2016-2022': {
+      majorRequired: 9, majorElective: 33, research: 9,
+      researchExemptForDoubleMajor: true,
+      minorRequired: 18, minorMajorRequired: 3,
+      minorNotes: ['전필 1과목(3학점) 이상 포함'],
+      doubleMajorRequired: 42, doubleMajorMajorRequired: 9,
+      advancedMajorRequired: 12,
+      basicElectiveDoubleMajor: 6,
+      notes: [
+        '전필: 3개 실험과목 각 3학점 (총 9학점)',
+        '연구: 졸업연구 3 + 개별연구 2 + 세미나 4학점 (총 9학점)',
+      ],
+    },
+    '2023이후': {
+      majorRequired: 9, majorElective: 33, research: 9,
+      researchExemptForDoubleMajor: true,
+      minorRequired: 18, minorMajorRequired: 3,
+      minorNotes: ['전필 1과목(3학점) 이상 포함'],
+      doubleMajorRequired: 42, doubleMajorMajorRequired: 9,
+      advancedMajorRequired: 12,
+      basicElectiveDoubleMajor: 6,
+      notes: [
+        '전필: 3개 실험과목 각 3학점 (총 9학점)',
+        '연구: 졸업연구 3 + 개별연구 2 + 세미나 4학점 (총 9학점)',
+      ],
+    },
+  },
+  '수리과학과': {
+    '2015이전': {
+      majorRequired: 0, majorElective: 42, research: 3,
+      researchExemptForDoubleMajor: true,
+      minorRequired: 18, minorMajorRequired: 0,
+      minorNotes: ['MAS코드 전공과목 18학점 이상, 별도 필수과목 없음'],
+      doubleMajorRequired: 40, doubleMajorMajorRequired: 0,
+      doubleMajorNotes: ['권장 선택과목 4과목 이상 포함'],
+      basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
+      basicElectiveRequiredCourses: ['MAS201', 'MAS202'],
+      notes: ['전공필수 없음, 권장 선택과목 4과목 이상 이수 권장'],
+    },
+    '2016-2022': {
+      majorRequired: 0, majorElective: 42, research: 3,
+      researchExemptForDoubleMajor: true,
+      minorRequired: 18, minorMajorRequired: 0,
+      minorNotes: ['MAS코드 전공과목 18학점 이상, 별도 필수과목 없음'],
+      doubleMajorRequired: 40, doubleMajorMajorRequired: 0,
+      doubleMajorNotes: ['권장 선택과목 4과목 이상 포함'],
+      advancedMajorRequired: 13,
+      basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
+      basicElectiveRequiredCourses: ['MAS109', 'MAS201', 'MAS202', 'MAS250'],
+      notes: [
+        '전공필수 없음, 권장 선택과목 4과목 이상 이수',
+        '심화전공: MAS242, MAS312, MAS430, MAS440 포함 13학점',
+      ],
+    },
     '2023이후': {
       majorRequired: 0, majorElective: 42, research: 3,
       researchExemptForDoubleMajor: true,
       minorRequired: 18, minorMajorRequired: 0,
+      minorNotes: ['MAS코드 전공과목 18학점 이상, 별도 필수과목 없음'],
       doubleMajorRequired: 40, doubleMajorMajorRequired: 0,
-      advancedMajorRequired: 12,
-      basicElectiveDoubleMajor: 6,
+      doubleMajorNotes: ['필수 선택과목 4과목 이상 포함'],
+      advancedMajorRequired: 13,
+      basicElectiveOverride: 9, basicElectiveDoubleMajor: 3,
+      basicElectiveRequiredCourses: ['MAS109', 'MAS201', 'MAS202', 'MAS250'],
+      notes: [
+        '전공필수 없음, 필수 선택과목 4과목 이상 이수',
+        '심화전공: MAS242, MAS312, MAS430, MAS440 포함 13학점',
+      ],
     },
   },
 };
@@ -703,10 +741,32 @@ export const getRequirementKey = (department: string, year: number): string => {
   
   const keys = Object.keys(deptReqs);
   
+  // 정확한 연도 범위 매칭
   for (const key of keys) {
-    if (key.includes('이전') && year <= 2015) return key;
-    if (key.includes('이후') && year >= 2023) return key;
-    
+    // "2015이전" 형태
+    if (key.includes('이전') && year <= parseInt(key)) {
+      return key;
+    }
+    // 단일 연도 키 (예: "2023")
+    if (/^\d{4}$/.test(key) && year === parseInt(key)) {
+      return key;
+    }
+    // "2023이후" 또는 "2024이후" 형태
+    if (key.includes('이후')) {
+      const startYear = parseInt(key);
+      if (year >= startYear) {
+        // 더 높은 "이후" 키가 있는지 확인
+        const higherKey = keys.find(k => {
+          if (k.includes('이후')) {
+            const otherYear = parseInt(k);
+            return otherYear > startYear && year >= otherYear;
+          }
+          return false;
+        });
+        if (!higherKey) return key;
+      }
+    }
+    // "2016-2022" 형태
     const match = key.match(/(\d{4})-(\d{4})/);
     if (match) {
       const start = parseInt(match[1]);
@@ -715,9 +775,17 @@ export const getRequirementKey = (department: string, year: number): string => {
     }
   }
   
+  // 기본 매칭
   if (year <= 2015 && keys.includes('2015이전')) return '2015이전';
-  if (year >= 2023 && keys.includes('2023이후')) return '2023이후';
   
+  // 가장 적합한 "이후" 키 찾기
+  const afterKeys = keys.filter(k => k.includes('이후')).sort((a, b) => parseInt(b) - parseInt(a));
+  for (const key of afterKeys) {
+    const startYear = parseInt(key);
+    if (year >= startYear) return key;
+  }
+  
+  // 범위 키 중 가장 큰 것 찾기
   for (const key of keys) {
     const match = key.match(/(\d{4})-(\d{4})/);
     if (match) {
